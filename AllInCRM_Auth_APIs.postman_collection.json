@@ -1,0 +1,546 @@
+{
+	"info": {
+		"_postman_id": "allincrm-auth-apis",
+		"name": "AllInCRM Auth APIs",
+		"description": "Complete authentication API collection for AllInCRM - Tenant and SuperAdmin endpoints",
+		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+	},
+	"variable": [
+		{
+			"key": "base_url_local",
+			"value": "http://127.0.0.1:8000/",
+			"type": "string"
+		},
+		{
+			"key": "base_url_prod",
+			"value": "",
+			"type": "string"
+		},
+		{
+			"key": "token_local",
+			"value": "",
+			"type": "string"
+		},
+		{
+			"key": "token_prod",
+			"value": "",
+			"type": "string"
+		}
+	],
+	"item": [
+		{
+			"name": "Tenant APIs",
+			"item": [
+				{
+					"name": "Authentication",
+					"item": [
+						{
+							"name": "Login",
+							"event": [
+								{
+									"listen": "test",
+									"script": {
+										"exec": [
+											"if (pm.response.code === 200) {",
+											"    var jsonData = pm.response.json();",
+											"    if (jsonData.data && jsonData.data.token) {",
+											"        pm.collectionVariables.set('token_local', jsonData.data.token);",
+											"    }",
+											"}"
+										],
+										"type": "text/javascript"
+									}
+								}
+							],
+							"request": {
+								"method": "POST",
+								"header": [
+									{
+										"key": "Accept",
+										"value": "application/json",
+										"type": "text"
+									},
+									{
+										"key": "Content-Type",
+										"value": "application/json",
+										"type": "text"
+									}
+								],
+								"body": {
+									"mode": "raw",
+									"raw": "{\n    \"email\": \"admin@example.com\",\n    \"password\": \"password123\"\n}",
+									"options": {
+										"raw": {
+											"language": "json"
+										}
+									}
+								},
+								"url": {
+									"raw": "{{base_url_local}}api/v1/auth/login",
+									"host": [
+										"{{base_url_local}}"
+									],
+									"path": [
+										"api",
+										"v1",
+										"auth",
+										"login"
+									]
+								},
+								"description": "Login endpoint for Tenant users. Allowed roles: Admin, Manager, Relationship Manager, IB Manager, Viewer. Super admin cannot login via this endpoint."
+							},
+							"response": []
+						},
+						{
+							"name": "Register",
+							"event": [
+								{
+									"listen": "test",
+									"script": {
+										"exec": [
+											"if (pm.response.code === 200) {",
+											"    var jsonData = pm.response.json();",
+											"    if (jsonData.data && jsonData.data.token) {",
+											"        pm.collectionVariables.set('token_local', jsonData.data.token);",
+											"    }",
+											"}"
+										],
+										"type": "text/javascript"
+									}
+								}
+							],
+							"request": {
+								"method": "POST",
+								"header": [
+									{
+										"key": "Accept",
+										"value": "application/json",
+										"type": "text"
+									},
+									{
+										"key": "Content-Type",
+										"value": "application/json",
+										"type": "text"
+									}
+								],
+								"body": {
+									"mode": "raw",
+									"raw": "{\n    \"name\": \"John Doe\",\n    \"email\": \"john.doe@example.com\",\n    \"password\": \"password123\",\n    \"password_confirmation\": \"password123\",\n    \"role\": \"Admin\"\n}",
+									"options": {
+										"raw": {
+											"language": "json"
+										}
+									}
+								},
+								"url": {
+									"raw": "{{base_url_local}}api/v1/auth/register",
+									"host": [
+										"{{base_url_local}}"
+									],
+									"path": [
+										"api",
+										"v1",
+										"auth",
+										"register"
+									]
+								},
+								"description": "Register a new user. Role parameter is optional. Allowed values: Admin, Manager, Relationship Manager, IB Manager, Viewer. Defaults to Viewer if not provided. The role_id will be saved in the users table."
+							},
+							"response": []
+						},
+						{
+							"name": "Forgot Password",
+							"request": {
+								"method": "POST",
+								"header": [
+									{
+										"key": "Accept",
+										"value": "application/json",
+										"type": "text"
+									},
+									{
+										"key": "Content-Type",
+										"value": "application/json",
+										"type": "text"
+									}
+								],
+								"body": {
+									"mode": "raw",
+									"raw": "{\n    \"email\": \"user@example.com\"\n}",
+									"options": {
+										"raw": {
+											"language": "json"
+										}
+									}
+								},
+								"url": {
+									"raw": "{{base_url_local}}api/v1/auth/forgot-password",
+									"host": [
+										"{{base_url_local}}"
+									],
+									"path": [
+										"api",
+										"v1",
+										"auth",
+										"forgot-password"
+									]
+								},
+								"description": "Request password reset email"
+							},
+							"response": []
+						},
+						{
+							"name": "Reset Password",
+							"request": {
+								"method": "POST",
+								"header": [
+									{
+										"key": "Accept",
+										"value": "application/json",
+										"type": "text"
+									},
+									{
+										"key": "Content-Type",
+										"value": "application/json",
+										"type": "text"
+									}
+								],
+								"body": {
+									"mode": "raw",
+									"raw": "{\n    \"email\": \"user@example.com\",\n    \"token\": \"reset-token-from-email\",\n    \"password\": \"newpassword123\",\n    \"password_confirmation\": \"newpassword123\"\n}",
+									"options": {
+										"raw": {
+											"language": "json"
+										}
+									}
+								},
+								"url": {
+									"raw": "{{base_url_local}}api/v1/auth/reset-password",
+									"host": [
+										"{{base_url_local}}"
+									],
+									"path": [
+										"api",
+										"v1",
+										"auth",
+										"reset-password"
+									]
+								},
+								"description": "Reset password using token from email"
+							},
+							"response": []
+						},
+						{
+							"name": "Logout",
+							"request": {
+								"method": "POST",
+								"header": [
+									{
+										"key": "Accept",
+										"value": "application/json",
+										"type": "text"
+									},
+									{
+										"key": "Authorization",
+										"value": "Bearer {{token_local}}",
+										"type": "text"
+									}
+								],
+								"url": {
+									"raw": "{{base_url_local}}api/v1/auth/logout",
+									"host": [
+										"{{base_url_local}}"
+									],
+									"path": [
+										"api",
+										"v1",
+										"auth",
+										"logout"
+									]
+								},
+								"description": "Logout and revoke current token. Requires authentication."
+							},
+							"response": []
+						},
+						{
+							"name": "Change Password",
+							"request": {
+								"method": "POST",
+								"header": [
+									{
+										"key": "Accept",
+										"value": "application/json",
+										"type": "text"
+									},
+									{
+										"key": "Authorization",
+										"value": "Bearer {{token_local}}",
+										"type": "text"
+									},
+									{
+										"key": "Content-Type",
+										"value": "application/json",
+										"type": "text"
+									}
+								],
+								"body": {
+									"mode": "raw",
+									"raw": "{\n    \"current_password\": \"oldpassword123\",\n    \"password\": \"newpassword123\",\n    \"password_confirmation\": \"newpassword123\"\n}",
+									"options": {
+										"raw": {
+											"language": "json"
+										}
+									}
+								},
+								"url": {
+									"raw": "{{base_url_local}}api/v1/auth/change-password",
+									"host": [
+										"{{base_url_local}}"
+									],
+									"path": [
+										"api",
+										"v1",
+										"auth",
+										"change-password"
+									]
+								},
+								"description": "Change password for authenticated user. Requires authentication."
+							},
+							"response": []
+						}
+					]
+				},
+				{
+					"name": "Profile",
+					"item": [
+						{
+							"name": "Get Profile",
+							"request": {
+								"method": "GET",
+								"header": [
+									{
+										"key": "Accept",
+										"value": "application/json",
+										"type": "text"
+									},
+									{
+										"key": "Authorization",
+										"value": "Bearer {{token_local}}",
+										"type": "text"
+									}
+								],
+								"url": {
+									"raw": "{{base_url_local}}api/v1/auth/profile",
+									"host": [
+										"{{base_url_local}}"
+									],
+									"path": [
+										"api",
+										"v1",
+										"auth",
+										"profile"
+									]
+								},
+								"description": "Get authenticated user profile with roles. Requires authentication."
+							},
+							"response": []
+						},
+						{
+							"name": "Update Profile (PUT)",
+							"request": {
+								"method": "PUT",
+								"header": [
+									{
+										"key": "Accept",
+										"value": "application/json",
+										"type": "text"
+									},
+									{
+										"key": "Authorization",
+										"value": "Bearer {{token_local}}",
+										"type": "text"
+									},
+									{
+										"key": "Content-Type",
+										"value": "application/json",
+										"type": "text"
+									}
+								],
+								"body": {
+									"mode": "raw",
+									"raw": "{\n    \"name\": \"John Doe Updated\",\n    \"email\": \"john.doe.updated@example.com\"\n}",
+									"options": {
+										"raw": {
+											"language": "json"
+										}
+									}
+								},
+								"url": {
+									"raw": "{{base_url_local}}api/v1/auth/profile",
+									"host": [
+										"{{base_url_local}}"
+									],
+									"path": [
+										"api",
+										"v1",
+										"auth",
+										"profile"
+									]
+								},
+								"description": "Update user profile. Requires authentication."
+							},
+							"response": []
+						},
+						{
+							"name": "Update Profile (PATCH)",
+							"request": {
+								"method": "PATCH",
+								"header": [
+									{
+										"key": "Accept",
+										"value": "application/json",
+										"type": "text"
+									},
+									{
+										"key": "Authorization",
+										"value": "Bearer {{token_local}}",
+										"type": "text"
+									},
+									{
+										"key": "Content-Type",
+										"value": "application/json",
+										"type": "text"
+									}
+								],
+								"body": {
+									"mode": "raw",
+									"raw": "{\n    \"name\": \"John Doe Updated\",\n    \"email\": \"john.doe.updated@example.com\"\n}",
+									"options": {
+										"raw": {
+											"language": "json"
+										}
+									}
+								},
+								"url": {
+									"raw": "{{base_url_local}}api/v1/auth/profile",
+									"host": [
+										"{{base_url_local}}"
+									],
+									"path": [
+										"api",
+										"v1",
+										"auth",
+										"profile"
+									]
+								},
+								"description": "Update user profile (partial update). Requires authentication."
+							},
+							"response": []
+						}
+					]
+				}
+			]
+		},
+		{
+			"name": "SuperAdmin APIs",
+			"item": [
+				{
+					"name": "Authentication",
+					"item": [
+						{
+							"name": "Login",
+							"event": [
+								{
+									"listen": "test",
+									"script": {
+										"exec": [
+											"if (pm.response.code === 200) {",
+											"    var jsonData = pm.response.json();",
+											"    if (jsonData.data && jsonData.data.token) {",
+											"        pm.collectionVariables.set('token_local', jsonData.data.token);",
+											"    }",
+											"}"
+										],
+										"type": "text/javascript"
+									}
+								}
+							],
+							"request": {
+								"method": "POST",
+								"header": [
+									{
+										"key": "Accept",
+										"value": "application/json",
+										"type": "text"
+									},
+									{
+										"key": "Content-Type",
+										"value": "application/json",
+										"type": "text"
+									}
+								],
+								"body": {
+									"mode": "raw",
+									"raw": "{\n    \"email\": \"superadmin@example.com\",\n    \"password\": \"password123\"\n}",
+									"options": {
+										"raw": {
+											"language": "json"
+										}
+									}
+								},
+								"url": {
+									"raw": "{{base_url_local}}api/superadmin/v1/auth/login",
+									"host": [
+										"{{base_url_local}}"
+									],
+									"path": [
+										"api",
+										"superadmin",
+										"v1",
+										"auth",
+										"login"
+									]
+								},
+								"description": "Login endpoint for SuperAdmin users only. Only users with 'Super admin' role can login via this endpoint."
+							},
+							"response": []
+						},
+						{
+							"name": "Logout",
+							"request": {
+								"method": "POST",
+								"header": [
+									{
+										"key": "Accept",
+										"value": "application/json",
+										"type": "text"
+									},
+									{
+										"key": "Authorization",
+										"value": "Bearer {{token_local}}",
+										"type": "text"
+									}
+								],
+								"url": {
+									"raw": "{{base_url_local}}api/superadmin/v1/auth/logout",
+									"host": [
+										"{{base_url_local}}"
+									],
+									"path": [
+										"api",
+										"superadmin",
+										"v1",
+										"auth",
+										"logout"
+									]
+								},
+								"description": "Logout and revoke current token. Requires authentication and Super admin role."
+							},
+							"response": []
+						}
+					]
+				}
+			]
+		}
+	]
+}
