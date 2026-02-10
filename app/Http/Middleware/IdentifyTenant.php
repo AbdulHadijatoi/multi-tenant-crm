@@ -52,7 +52,8 @@ class IdentifyTenant
         }
 
         // Make tenant available to controllers
-        $request->merge(['tenant' => $tenant]);
+        // Convert tenant object to array for merge, but keep object in attributes
+        $request->merge(['tenant' => (array) $tenant]);
         $request->attributes->set('tenant', $tenant);
 
         return $next($request);

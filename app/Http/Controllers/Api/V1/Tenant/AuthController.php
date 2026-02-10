@@ -63,8 +63,33 @@ class AuthController extends Controller
         $tenant = $request->attributes->get('tenant') ?? (object) ['id' => 1];
         $token = $user->createToken('tenant_'.$tenant->id)->plainTextToken;
 
+        // Get role_id and role_name instead of roles object
+        $roleId = $user->role_id;
+        $roleName = null;
+        if ($roleId) {
+            $user->load('roleModel');
+            if ($user->roleModel) {
+                $roleName = $user->roleModel->name;
+            }
+        }
+        
+        // Fallback to first role if role_id is not set
+        if (!$roleName) {
+            $firstRole = $user->roles->first();
+            if ($firstRole) {
+                $roleId = $firstRole->id;
+                $roleName = $firstRole->name;
+            }
+        }
+
+        // Prepare user data without roles and role_model objects
+        $userData = $user->toArray();
+        unset($userData['roles'], $userData['role_model']);
+        $userData['role_id'] = $roleId;
+        $userData['role_name'] = $roleName;
+
         return $this->success([
-            'user' => $user->load('roles'),
+            'user' => $userData,
             'token' => $token,
         ], 200, __('auth.login_success'));
     }
@@ -102,8 +127,18 @@ class AuthController extends Controller
 
         $token = $user->createToken('tenant_'.$tenant->id)->plainTextToken;
 
+        // Get role_id and role_name instead of roles object
+        $roleId = $user->role_id;
+        $roleName = $role->name; // We already have the role object
+
+        // Prepare user data without roles and role_model objects
+        $userData = $user->toArray();
+        unset($userData['roles'], $userData['role_model']);
+        $userData['role_id'] = $roleId;
+        $userData['role_name'] = $roleName;
+
         return $this->created([
-            'user' => $user->load('roles'),
+            'user' => $userData,
             'token' => $token,
         ], __('auth.register_success'));
     }
@@ -205,10 +240,35 @@ class AuthController extends Controller
      */
     public function profile(Request $request)
     {
-        $user = $request->user()->load('roles');
+        $user = $request->user();
+
+        // Get role_id and role_name instead of roles object
+        $roleId = $user->role_id;
+        $roleName = null;
+        if ($roleId) {
+            $user->load('roleModel');
+            if ($user->roleModel) {
+                $roleName = $user->roleModel->name;
+            }
+        }
+        
+        // Fallback to first role if role_id is not set
+        if (!$roleName) {
+            $firstRole = $user->roles->first();
+            if ($firstRole) {
+                $roleId = $firstRole->id;
+                $roleName = $firstRole->name;
+            }
+        }
+
+        // Prepare user data without roles and role_model objects
+        $userData = $user->toArray();
+        unset($userData['roles'], $userData['role_model']);
+        $userData['role_id'] = $roleId;
+        $userData['role_name'] = $roleName;
 
         return $this->success([
-            'user' => $user,
+            'user' => $userData,
         ], 200, __('auth.profile_retrieved'));
     }
 
@@ -224,8 +284,33 @@ class AuthController extends Controller
             'email' => $request->email,
         ]);
 
+        // Get role_id and role_name instead of roles object
+        $roleId = $user->role_id;
+        $roleName = null;
+        if ($roleId) {
+            $user->load('roleModel');
+            if ($user->roleModel) {
+                $roleName = $user->roleModel->name;
+            }
+        }
+        
+        // Fallback to first role if role_id is not set
+        if (!$roleName) {
+            $firstRole = $user->roles->first();
+            if ($firstRole) {
+                $roleId = $firstRole->id;
+                $roleName = $firstRole->name;
+            }
+        }
+
+        // Prepare user data without roles and role_model objects
+        $userData = $user->toArray();
+        unset($userData['roles'], $userData['role_model']);
+        $userData['role_id'] = $roleId;
+        $userData['role_name'] = $roleName;
+
         return $this->success([
-            'user' => $user->load('roles'),
+            'user' => $userData,
         ], 200, __('auth.profile_updated'));
     }
 }

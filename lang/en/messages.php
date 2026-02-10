@@ -16,10 +16,11 @@ return [
         'operation_completed_successfully' => 'Operation completed successfully.',
         'data_retrieved_successfully' => 'Data retrieved successfully.',
         'resource_created_successfully' => 'Resource created successfully.',
-        'unauthorized' => 'Unauthorized access.',
-        'forbidden' => 'Access forbidden.',
-        'resource_not_found' => 'Resource not found.',
-        'validation_failed' => 'Validation failed.',
+        'unauthorized' => 'Please log in to continue.',
+        'forbidden' => 'Access denied.',
+        'resource_not_found' => 'The requested information could not be found.',
+        'validation_failed' => 'Please check your input and try again.',
+        'server_error' => 'Something went wrong. Please try again later.',
     ],
 
 ];

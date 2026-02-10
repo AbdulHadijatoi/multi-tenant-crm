@@ -16,8 +16,8 @@ return [
     'reset' => 'Your password has been reset.',
     'sent' => 'We have emailed your password reset link.',
     'throttled' => 'Please wait before retrying.',
-    'token' => 'This password reset token is invalid.',
-    'user' => "We can't find a user with that email address.",
+    'token' => 'The password reset link has expired or is invalid. Please request a new one.',
+    'user' => "We couldn't find an account with that email address.",
 
     // Custom password messages
     'current_password_incorrect' => 'The current password is incorrect.',

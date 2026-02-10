@@ -38,8 +38,33 @@ class AuthController extends Controller
 
         $token = $user->createToken('superadmin_token')->plainTextToken;
 
+        // Get role_id and role_name instead of roles object
+        $roleId = $user->role_id;
+        $roleName = null;
+        if ($roleId) {
+            $user->load('roleModel');
+            if ($user->roleModel) {
+                $roleName = $user->roleModel->name;
+            }
+        }
+        
+        // Fallback to first role if role_id is not set
+        if (!$roleName) {
+            $firstRole = $user->roles->first();
+            if ($firstRole) {
+                $roleId = $firstRole->id;
+                $roleName = $firstRole->name;
+            }
+        }
+
+        // Prepare user data without roles and role_model objects
+        $userData = $user->toArray();
+        unset($userData['roles'], $userData['role_model']);
+        $userData['role_id'] = $roleId;
+        $userData['role_name'] = $roleName;
+
         return $this->success([
-            'user' => $user->load('roles'),
+            'user' => $userData,
             'token' => $token,
         ], 200, __('auth.login_success'));
     }

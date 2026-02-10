@@ -23,7 +23,7 @@ return [
     'logout_success' => 'Logout successful.',
     'profile_retrieved' => 'Profile retrieved successfully.',
     'profile_updated' => 'Profile updated successfully.',
-    'unauthorized_role' => 'You are not authorized to access this endpoint with your current role.',
-    'invalid_role' => 'The provided role is invalid.',
+    'unauthorized_role' => 'Access denied. Invalid credentials.',
+    'invalid_role' => 'Invalid role selected.',
 
 ];
