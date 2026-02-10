@@ -40,8 +40,14 @@ class IdentifyTenantFromToken
             $bearerToken = substr($bearerToken, strlen($tokenPrefix));
         }
 
+        // Sanctum tokens are in format: {id}|{token}
+        // We need to extract the token part (after |) and hash it
+        // The database stores only the hash of the token part, not the ID
+        $tokenParts = explode('|', $bearerToken, 2);
+        $actualToken = count($tokenParts) === 2 ? $tokenParts[1] : $bearerToken;
+
         // Hash the token to look it up in the database (Sanctum stores hashed tokens)
-        $tokenHash = hash('sha256', $bearerToken);
+        $tokenHash = hash('sha256', $actualToken);
 
         // Look up token in Master DB (PersonalAccessToken uses Master DB connection)
         $token = PersonalAccessToken::where('token', $tokenHash)->first();
