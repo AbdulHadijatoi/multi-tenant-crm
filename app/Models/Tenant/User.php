@@ -2,9 +2,6 @@
 
 namespace App\Models\Tenant;
 
-use App\Models\TenantModel;
-use App\Models\Tenant\Wallet;
-use App\Models\Tenant\TradingAccount;
 use App\Notifications\ResetPasswordNotification;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Foundation\Auth\User as Authenticatable;

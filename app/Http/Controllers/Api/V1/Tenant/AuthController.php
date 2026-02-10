@@ -173,11 +173,12 @@ class AuthController extends Controller
             // Switch back to Master DB before creating token
             $tenantDbService->switchToMaster();
 
-            // Create token in Master DB
-            $token = $user->createToken('auth_token', ['*'])->plainTextToken;
+            // Create token in Master DB and get the token model
+            $tokenResult = $user->createToken('auth_token', ['*']);
+            $token = $tokenResult->plainTextToken;
+            $tokenModel = $tokenResult->accessToken;
 
-            // Manually set tenant_id and domain on the token record
-            $tokenModel = $user->currentAccessToken();
+            // Set tenant_id and domain on the token record
             $tokenModel->tenant_id = $tenant->id;
             $tokenModel->domain = $domain;
             $tokenModel->save();
@@ -186,6 +187,7 @@ class AuthController extends Controller
                 'token' => $token,
                 'tenant_id' => $tenant->id,
                 'domain' => $domain,
+                'user' => $userData,
             ], 200, __('auth.login_success'));
         } catch (\Exception $e) {
             // Ensure we switch back to Master DB on error

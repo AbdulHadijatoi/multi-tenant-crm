@@ -4,7 +4,9 @@ namespace Database\Seeders;
 
 use Database\Seeders\Master\MasterUserSeeder;
 use Database\Seeders\Master\TenantSeeder;
+use Database\Seeders\Master\TenantSubscriptionSeeder;
 use Illuminate\Database\Seeder;
+use Illuminate\Support\Facades\Config;
 use Illuminate\Support\Facades\DB;
 
 class MasterDatabaseSeeder extends Seeder
@@ -14,12 +16,13 @@ class MasterDatabaseSeeder extends Seeder
      */
     public function run(): void
     {
-        // Ensure we're using the master connection
-        DB::setDefaultConnection('master');
+        // switch to master connection
+        Config::set('database.default', 'master');
 
         $this->call([
             TenantSeeder::class,
             MasterUserSeeder::class,
+            TenantSubscriptionSeeder::class,
         ]);
     }
 }
