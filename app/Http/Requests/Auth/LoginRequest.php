@@ -28,6 +28,41 @@ class LoginRequest extends FormRequest
     }
 
     /**
+     * Get custom messages for validator errors.
+     *
+     * @return array<string, string>
+     */
+    public function messages(): array
+    {
+        return [
+            'email.required' => 'Email is required.',
+            'email.email' => 'Email must be a valid email address.',
+            'password.required' => 'Password is required.',
+        ];
+    }
+
+    /**
+     * Configure the validator instance.
+     *
+     * @param  \Illuminate\Validation\Validator  $validator
+     * @return void
+     */
+    public function withValidator($validator): void
+    {
+        $validator->after(function ($validator) {
+            // Validate X-Tenant-Domain header
+            if (!$this->hasHeader('X-Tenant-Domain') || empty($this->header('X-Tenant-Domain'))) {
+                $validator->errors()->add('X-Tenant-Domain', 'X-Tenant-Domain header is required.');
+            }
+
+            // Validate X-License-Key header
+            if (!$this->hasHeader('X-License-Key') || empty($this->header('X-License-Key'))) {
+                $validator->errors()->add('X-License-Key', 'X-License-Key header is required.');
+            }
+        });
+    }
+
+    /**
      * Prepare the data for validation.
      */
     protected function prepareForValidation(): void

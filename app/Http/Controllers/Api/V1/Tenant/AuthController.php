@@ -9,7 +9,10 @@ use App\Http\Requests\Auth\LoginRequest;
 use App\Http\Requests\Auth\RegisterRequest;
 use App\Http\Requests\Auth\ResetPasswordRequest;
 use App\Http\Requests\Auth\UpdateProfileRequest;
+use App\Models\PersonalAccessToken;
+use App\Models\Tenant;
 use App\Models\User;
+use App\Services\TenantDatabaseService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Hash;
@@ -24,74 +27,117 @@ class AuthController extends Controller
      */
     public function login(LoginRequest $request)
     {
-        $user = User::where('email', $request->email)->first();
+        // Get domain and license_key from headers
+        $domain = $request->header('X-Tenant-Domain');
+        $licenseKey = $request->header('X-License-Key');
 
-        if (! $user || ! Hash::check($request->password, $user->password)) {
+        // Verify tenant in Master DB
+        $tenant = Tenant::where('domain', $domain)
+            ->where('license_key', $licenseKey)
+            ->first();
+
+        if (!$tenant) {
             return $this->error(
-                __('auth.failed'),
+                'Invalid tenant',
                 [],
                 401,
-                'INVALID_CREDENTIALS'
+                'INVALID_TENANT'
             );
         }
 
-        // Check if user has an allowed role for tenant login
-        $allowedRoles = ['Admin', 'Manager', 'Relationship Manager', 'IB Manager', 'Viewer'];
-        $userRoles = $user->getRoleNames()->toArray();
-        
-        $hasAllowedRole = !empty(array_intersect($allowedRoles, $userRoles));
-        
-        // Block Super admin from logging in via tenant endpoint
-        if ($user->hasRole('Super admin')) {
-            return $this->error(
-                __('auth.unauthorized_role'),
-                [],
-                403,
-                'UNAUTHORIZED_ROLE'
-            );
-        }
-        
-        if (!$hasAllowedRole) {
-            return $this->error(
-                __('auth.unauthorized_role'),
-                [],
-                403,
-                'UNAUTHORIZED_ROLE'
-            );
-        }
+        // Switch to Tenant DB
+        $tenantDbService = new TenantDatabaseService();
+        $tenantDbService->switchToTenant($tenant);
 
-        $tenant = $request->attributes->get('tenant') ?? (object) ['id' => 1];
-        $token = $user->createToken('tenant_'.$tenant->id)->plainTextToken;
+        try {
+            // Authenticate user credentials from Tenant DB
+            $user = User::where('email', $request->email)->first();
 
-        // Get role_id and role_name instead of roles object
-        $roleId = $user->role_id;
-        $roleName = null;
-        if ($roleId) {
-            $user->load('roleModel');
-            if ($user->roleModel) {
-                $roleName = $user->roleModel->name;
+            if (! $user || ! Hash::check($request->password, $user->password)) {
+                // Switch back to Master DB before returning error
+                $tenantDbService->switchToMaster();
+                return $this->error(
+                    __('auth.failed'),
+                    [],
+                    401,
+                    'INVALID_CREDENTIALS'
+                );
             }
-        }
-        
-        // Fallback to first role if role_id is not set
-        if (!$roleName) {
-            $firstRole = $user->roles->first();
-            if ($firstRole) {
-                $roleId = $firstRole->id;
-                $roleName = $firstRole->name;
+
+            // Check if user has an allowed role for tenant login
+            $allowedRoles = ['Admin', 'Manager', 'Relationship Manager', 'IB Manager', 'Viewer'];
+            $userRoles = $user->getRoleNames()->toArray();
+            
+            $hasAllowedRole = !empty(array_intersect($allowedRoles, $userRoles));
+            
+            // Block Super admin from logging in via tenant endpoint
+            if ($user->hasRole('Super admin')) {
+                $tenantDbService->switchToMaster();
+                return $this->error(
+                    __('auth.unauthorized_role'),
+                    [],
+                    403,
+                    'UNAUTHORIZED_ROLE'
+                );
             }
+            
+            if (!$hasAllowedRole) {
+                $tenantDbService->switchToMaster();
+                return $this->error(
+                    __('auth.unauthorized_role'),
+                    [],
+                    403,
+                    'UNAUTHORIZED_ROLE'
+                );
+            }
+
+            // Get role_id and role_name instead of roles object
+            $roleId = $user->role_id;
+            $roleName = null;
+            if ($roleId) {
+                $user->load('roleModel');
+                if ($user->roleModel) {
+                    $roleName = $user->roleModel->name;
+                }
+            }
+            
+            // Fallback to first role if role_id is not set
+            if (!$roleName) {
+                $firstRole = $user->roles->first();
+                if ($firstRole) {
+                    $roleId = $firstRole->id;
+                    $roleName = $firstRole->name;
+                }
+            }
+
+            // Prepare user data without roles and role_model objects
+            $userData = $user->toArray();
+            unset($userData['roles'], $userData['role_model']);
+            $userData['role_id'] = $roleId;
+            $userData['role_name'] = $roleName;
+
+            // Switch back to Master DB before creating token
+            $tenantDbService->switchToMaster();
+
+            // Create token in Master DB
+            $token = $user->createToken('auth_token', ['*'])->plainTextToken;
+
+            // Manually set tenant_id and domain on the token record
+            $tokenModel = $user->currentAccessToken();
+            $tokenModel->tenant_id = $tenant->id;
+            $tokenModel->domain = $domain;
+            $tokenModel->save();
+
+            return $this->success([
+                'token' => $token,
+                'tenant_id' => $tenant->id,
+                'domain' => $domain,
+            ], 200, __('auth.login_success'));
+        } catch (\Exception $e) {
+            // Ensure we switch back to Master DB on error
+            $tenantDbService->switchToMaster();
+            throw $e;
         }
-
-        // Prepare user data without roles and role_model objects
-        $userData = $user->toArray();
-        unset($userData['roles'], $userData['role_model']);
-        $userData['role_id'] = $roleId;
-        $userData['role_name'] = $roleName;
-
-        return $this->success([
-            'user' => $userData,
-            'token' => $token,
-        ], 200, __('auth.login_success'));
     }
 
     /**
@@ -148,7 +194,17 @@ class AuthController extends Controller
      */
     public function logout(Request $request)
     {
-        $request->user()->currentAccessToken()->delete();
+        // Get token from request attributes (set by middleware)
+        $token = $request->attributes->get('token');
+
+        if ($token) {
+            // Switch to Master DB to delete token
+            $tenantDbService = new TenantDatabaseService();
+            $tenantDbService->switchToMaster();
+            
+            // Delete token from Master DB
+            $token->delete();
+        }
 
         return $this->success(null, 200, __('auth.logout_success'));
     }

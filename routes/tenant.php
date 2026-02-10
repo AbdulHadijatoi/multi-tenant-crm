@@ -23,7 +23,8 @@ Route::group(['middleware' => []], function () {
 });
 
 // Protected routes (authentication required)
-Route::group(['middleware' => ['auth:sanctum']], function () {
+// tenant middleware handles: token validation, tenant switching, and user authentication
+Route::group(['middleware' => ['tenant']], function () {
     Route::post('/auth/logout', [AuthController::class, 'logout']);
     Route::post('/auth/change-password', [AuthController::class, 'changePassword']);
     Route::get('/auth/profile', [AuthController::class, 'profile']);
