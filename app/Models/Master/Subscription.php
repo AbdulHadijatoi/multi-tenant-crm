@@ -1,20 +1,16 @@
 <?php
 
-namespace App\Models;
+namespace App\Models\Master;
 
-use Illuminate\Database\Eloquent\Model;
+use App\Models\MasterModel;
+use App\Models\Master\Tenant;
+use App\Models\Master\Plan;
+use App\Models\Master\License;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 
-class Subscription extends Model
+class Subscription extends MasterModel
 {
-    /**
-     * The connection name for the model.
-     *
-     * @var string|null
-     */
-    protected $connection = null; // Use default connection (Master DB)
-
     /**
      * The attributes that are mass assignable.
      *
@@ -40,11 +36,11 @@ class Subscription extends Model
      * @var array<string, string>
      */
     protected $casts = [
-        'starts_at'     => 'datetime',
-        'ends_at'       => 'datetime',
+        'starts_at' => 'datetime',
+        'ends_at' => 'datetime',
         'trial_ends_at' => 'datetime',
-        'cancelled_at'  => 'datetime',
-        'auto_renew'    => 'boolean',
+        'cancelled_at' => 'datetime',
+        'auto_renew' => 'boolean',
     ];
 
     /**
@@ -71,16 +67,25 @@ class Subscription extends Model
         return $this->hasMany(License::class);
     }
 
+    /**
+     * Check if subscription is active.
+     */
     public function isActive(): bool
     {
         return $this->status === 'active';
     }
 
+    /**
+     * Check if subscription is past due.
+     */
     public function isPastDue(): bool
     {
         return $this->status === 'past_due';
     }
 
+    /**
+     * Check if subscription is canceled.
+     */
     public function isCanceled(): bool
     {
         return $this->status === 'canceled';

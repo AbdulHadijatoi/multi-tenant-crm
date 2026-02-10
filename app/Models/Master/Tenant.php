@@ -1,19 +1,14 @@
 <?php
 
-namespace App\Models;
+namespace App\Models\Master;
 
-use Illuminate\Database\Eloquent\Model;
+use App\Models\MasterModel;
+use App\Models\Master\License;
+use App\Models\Master\Subscription;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 
-class Tenant extends Model
+class Tenant extends MasterModel
 {
-    /**
-     * The connection name for the model.
-     *
-     * @var string|null
-     */
-    protected $connection = null; // Use default connection (Master DB)
-
     /**
      * The attributes that are mass assignable.
      *
@@ -38,16 +33,16 @@ class Tenant extends Model
     /**
      * Get all subscriptions for this tenant.
      */
-    public function licenses(): HasMany
-    {
-        return $this->hasMany(License::class);
-    }
-
-    /**
-     * Get all subscriptions for this tenant.
-     */
     public function subscriptions(): HasMany
     {
         return $this->hasMany(Subscription::class);
+    }
+
+    /**
+     * Get all licenses for this tenant.
+     */
+    public function licenses(): HasMany
+    {
+        return $this->hasMany(License::class);
     }
 }

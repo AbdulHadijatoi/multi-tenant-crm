@@ -1,19 +1,13 @@
 <?php
 
-namespace App\Models;
+namespace App\Models\Master;
 
-use Illuminate\Database\Eloquent\Model;
+use App\Models\MasterModel;
+use App\Models\Master\Subscription;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 
-class Plan extends Model
+class Plan extends MasterModel
 {
-    /**
-     * The connection name for the model.
-     *
-     * @var string|null
-     */
-    protected $connection = null; // Use default connection (Master DB)
-
     /**
      * The attributes that are mass assignable.
      *
@@ -34,9 +28,9 @@ class Plan extends Model
      * @var array<string, string>
      */
     protected $casts = [
-        'price'       => 'decimal:2',
+        'price' => 'decimal:2',
         'max_storage' => 'integer',
-        'features'    => 'array',
+        'features' => 'array',
     ];
 
     /**

@@ -2,9 +2,9 @@
 
 namespace App\Http\Middleware;
 
-use App\Models\PersonalAccessToken;
-use App\Models\Tenant;
-use App\Models\User;
+use App\Models\Master\PersonalAccessToken;
+use App\Models\Master\Tenant;
+use App\Models\Tenant\User;
 use App\Services\TenantDatabaseService;
 use Closure;
 use Illuminate\Http\Request;
@@ -133,7 +133,7 @@ class IdentifyTenantFromToken
         }
 
         // Verify tokenable_type matches User model
-        if ($token->tokenable_type !== User::class) {
+        if ($token->tokenable_type !== \App\Models\Tenant\User::class) {
             $tenantDbService->switchToMaster();
             return response()->json([
                 'success' => false,

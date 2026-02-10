@@ -1,10 +1,11 @@
 <?php
 
-namespace App\Models;
+namespace App\Models\Tenant;
 
-use Illuminate\Database\Eloquent\Model;
+use App\Models\TenantModel;
+use App\Models\Tenant\User;
 
-class Wallet extends Model
+class Wallet extends TenantModel
 {
     protected $fillable = ['user_id', 'balance', 'locked_balance', 'commission_balance', 'currency'];
 

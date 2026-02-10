@@ -1,7 +1,10 @@
 <?php
 
-namespace App\Models;
+namespace App\Models\Tenant;
 
+use App\Models\TenantModel;
+use App\Models\Tenant\Wallet;
+use App\Models\Tenant\TradingAccount;
 use App\Notifications\ResetPasswordNotification;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Foundation\Auth\User as Authenticatable;
@@ -12,6 +15,13 @@ use Spatie\Permission\Traits\HasRoles;
 class User extends Authenticatable
 {
     use HasApiTokens, HasFactory, Notifiable, HasRoles;
+
+    /**
+     * The connection name for the model.
+     *
+     * @var string|null
+     */
+    protected $connection = 'tenant';
 
     /**
      * Send the password reset notification.
@@ -42,12 +52,12 @@ class User extends Authenticatable
 
     public function wallet()
     {
-        return $this->hasOne(Wallet::class);
+        return $this->hasOne(\App\Models\Tenant\Wallet::class);
     }
 
     public function tradingAccounts()
     {
-        return $this->hasMany(TradingAccount::class);
+        return $this->hasMany(\App\Models\Tenant\TradingAccount::class);
     }
 
     /**

@@ -1,20 +1,14 @@
 <?php
 
-namespace App\Models;
+namespace App\Models\Master;
 
-use Illuminate\Database\Eloquent\Model;
+use App\Models\MasterModel;
+use App\Models\Master\Tenant;
+use App\Models\Master\Subscription;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
-use Illuminate\Database\Eloquent\Relations\HasOneThrough;
 
-class License extends Model
+class License extends MasterModel
 {
-    /**
-     * The connection name for the model.
-     *
-     * @var string|null
-     */
-    protected $connection = null; // Use default connection (Master DB)
-
     /**
      * The attributes that are mass assignable.
      *
@@ -64,7 +58,7 @@ class License extends Model
      */
     public function isActive(): bool
     {
-        return $this->status === 'active' 
+        return $this->status === 'active'
             && (!$this->expires_at || $this->expires_at->isFuture())
             && !$this->revoked_at;
     }

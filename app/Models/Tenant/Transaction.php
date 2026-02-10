@@ -1,10 +1,11 @@
 <?php
 
-namespace App\Models;
+namespace App\Models\Tenant;
 
-use Illuminate\Database\Eloquent\Model;
+use App\Models\TenantModel;
+use App\Models\Tenant\User;
 
-class Transaction extends Model
+class Transaction extends TenantModel
 {
     protected $fillable = [
         'user_id', 'type', 'amount', 'currency', 'status', 'description', 'method', 'reference_id'

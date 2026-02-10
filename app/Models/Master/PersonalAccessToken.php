@@ -1,6 +1,6 @@
 <?php
 
-namespace App\Models;
+namespace App\Models\Master;
 
 use Laravel\Sanctum\PersonalAccessToken as SanctumPersonalAccessToken;
 
@@ -11,7 +11,7 @@ class PersonalAccessToken extends SanctumPersonalAccessToken
      *
      * @var string|null
      */
-    protected $connection = null; // Use default connection (Master DB)
+    protected $connection = 'master';
 
     /**
      * The attributes that are mass assignable.
