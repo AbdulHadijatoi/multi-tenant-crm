@@ -112,6 +112,18 @@ class IdentifyTenantFromToken
             ], 404);
         }
 
+        // Verify tenant.domain matches request header domain (security check)
+        if ($tenant->domain !== $requestDomain) {
+            return response()->json([
+                'success' => false,
+                'failed' => true,
+                'message' => 'Domain mismatch',
+                'data' => null,
+                'errors' => [],
+                'error_code' => 'DOMAIN_MISMATCH',
+            ], 403);
+        }
+
         // Use TenantDatabaseService to switch to Tenant DB
         $tenantDbService = new TenantDatabaseService();
         $tenantDbService->switchToTenant($tenant);

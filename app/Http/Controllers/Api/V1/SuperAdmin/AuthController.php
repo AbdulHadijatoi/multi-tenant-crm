@@ -4,7 +4,7 @@ namespace App\Http\Controllers\Api\V1\SuperAdmin;
 
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Auth\LoginRequest;
-use App\Models\Tenant\User;
+use App\Models\Master\User;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
 
@@ -26,8 +26,8 @@ class AuthController extends Controller
             );
         }
 
-        // Only allow Super admin role
-        if (! $user->hasRole('Super admin')) {
+        // Only allow SuperAdmin role with master guard
+        if (! $user->hasRole('SuperAdmin', 'master')) {
             return $this->error(
                 __('auth.unauthorized_role'),
                 [],
@@ -38,28 +38,14 @@ class AuthController extends Controller
 
         $token = $user->createToken('superadmin_token')->plainTextToken;
 
-        // Get role_id and role_name instead of roles object
-        $roleId = $user->role_id;
-        $roleName = null;
-        if ($roleId) {
-            $user->load('roleModel');
-            if ($user->roleModel) {
-                $roleName = $user->roleModel->name;
-            }
-        }
-        
-        // Fallback to first role if role_id is not set
-        if (!$roleName) {
-            $firstRole = $user->roles->first();
-            if ($firstRole) {
-                $roleId = $firstRole->id;
-                $roleName = $firstRole->name;
-            }
-        }
+        // Get role information from Spatie
+        $firstRole = $user->roles->first();
+        $roleId = $firstRole ? $firstRole->id : null;
+        $roleName = $firstRole ? $firstRole->name : null;
 
-        // Prepare user data without roles and role_model objects
+        // Prepare user data without roles object
         $userData = $user->toArray();
-        unset($userData['roles'], $userData['role_model']);
+        unset($userData['roles']);
         $userData['role_id'] = $roleId;
         $userData['role_name'] = $roleName;
 

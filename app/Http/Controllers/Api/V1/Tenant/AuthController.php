@@ -33,8 +33,13 @@ class AuthController extends Controller
         $domain = $request->header('X-Tenant-Domain');
         $licenseKey = $request->header('X-License-Key');
 
-        // 1) Resolve tenant by domain
-        $tenant = Tenant::where('domain', $domain)->first();
+        // Validate tenant in master DB using license and domain together
+        // Find tenant where license_key matches AND domain matches
+        $tenant = Tenant::whereHas('licenses', function ($query) use ($licenseKey) {
+            $query->where('license_key', $licenseKey);
+        })
+        ->where('domain', $domain)
+        ->first();
 
         if (!$tenant) {
             return $this->error(
@@ -45,7 +50,7 @@ class AuthController extends Controller
             );
         }
 
-        // 2) Find license by key (scoped to tenant)
+        // Find license by key (scoped to tenant) - already validated above but need for status check
         $license = License::with('subscription')
             ->where('license_key', $licenseKey)
             ->where('tenant_id', $tenant->id)

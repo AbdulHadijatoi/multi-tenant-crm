@@ -1,6 +1,6 @@
 <?php
 
-namespace Database\Seeders;
+namespace Database\Seeders\Tenant;
 
 use Illuminate\Database\Seeder;
 use Spatie\Permission\Models\Role;
@@ -13,7 +13,6 @@ class RoleSeeder extends Seeder
     public function run(): void
     {
         $roles = [
-            'Super admin',
             'Admin',
             'Manager',
             'Relationship Manager',
@@ -22,7 +21,12 @@ class RoleSeeder extends Seeder
         ];
 
         foreach ($roles as $roleName) {
-            Role::firstOrCreate(['name' => $roleName]);
+            Role::firstOrCreate(
+                [
+                    'name' => $roleName,
+                    'guard_name' => 'web',
+                ]
+            );
         }
     }
 }

@@ -2,6 +2,7 @@
 
 namespace App\Http\Middleware;
 
+use App\Models\Master\Tenant;
 use Closure;
 use Illuminate\Http\Request;
 use Symfony\Component\HttpFoundation\Response;
@@ -15,45 +16,48 @@ class IdentifyTenant
      */
     public function handle(Request $request, Closure $next): Response
     {
-        $tenantId = null;
-        $tenant = null;
+        // X-Tenant-Domain header is required for all tenant APIs
+        $domain = $request->header('X-Tenant-Domain');
 
-        // Try to get tenant from header first
-        if ($request->hasHeader('X-Tenant-ID')) {
-            $tenantId = $request->header('X-Tenant-ID');
-        }
-        // Try to get tenant from request parameter
-        elseif ($request->has('tenant_id')) {
-            $tenantId = $request->input('tenant_id');
-        }
-        // Try to get tenant from subdomain
-        else {
-            $host = $request->getHost();
-            $parts = explode('.', $host);
-            if (count($parts) > 2) {
-                // Assuming subdomain format: tenant.example.com
-                $tenantId = $parts[0];
-            }
+        if (!$domain) {
+            return response()->json([
+                'success' => false,
+                'failed' => true,
+                'message' => 'X-Tenant-Domain header is required',
+                'data' => null,
+                'errors' => [],
+                'error_code' => 'MISSING_DOMAIN_HEADER',
+            ], 400);
         }
 
-        // If tenant ID found, create a simple tenant object
-        // This can be enhanced later with a Tenant model
-        if ($tenantId) {
-            $tenant = (object) [
-                'id' => (int) $tenantId,
-                'identifier' => $tenantId,
-            ];
-        } else {
-            // Default tenant if none specified (for development/testing)
-            $tenant = (object) [
-                'id' => 1,
-                'identifier' => 'default',
-            ];
+        // Load tenant from Master DB using domain from header
+        $tenant = Tenant::where('domain', $domain)->first();
+
+        if (!$tenant) {
+            return response()->json([
+                'success' => false,
+                'failed' => true,
+                'message' => 'Invalid tenant',
+                'data' => null,
+                'errors' => [],
+                'error_code' => 'INVALID_TENANT',
+            ], 401);
+        }
+
+        // Verify tenant.domain matches request header domain (security check)
+        if ($tenant->domain !== $domain) {
+            return response()->json([
+                'success' => false,
+                'failed' => true,
+                'message' => 'Domain mismatch',
+                'data' => null,
+                'errors' => [],
+                'error_code' => 'DOMAIN_MISMATCH',
+            ], 403);
         }
 
         // Make tenant available to controllers
-        // Convert tenant object to array for merge, but keep object in attributes
-        $request->merge(['tenant' => (array) $tenant]);
+        $request->merge(['tenant' => $tenant->toArray()]);
         $request->attributes->set('tenant', $tenant);
 
         return $next($request);

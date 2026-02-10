@@ -1,6 +1,6 @@
 <?php
 
-namespace Database\Seeders;
+namespace Database\Seeders\Tenant;
 
 use App\Models\Tenant\User;
 use Illuminate\Database\Seeder;
@@ -15,11 +15,6 @@ class UserSeeder extends Seeder
     public function run(): void
     {
         $users = [
-            [
-                'name' => 'Super Admin',
-                'email' => 'superadmin@gmail.com',
-                'role' => 'Super admin',
-            ],
             [
                 'name' => 'Admin',
                 'email' => 'admin@gmail.com',

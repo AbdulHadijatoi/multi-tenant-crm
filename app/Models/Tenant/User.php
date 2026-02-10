@@ -24,6 +24,13 @@ class User extends Authenticatable
     protected $connection = 'tenant';
 
     /**
+     * The guard name for Spatie permissions.
+     *
+     * @var string
+     */
+    protected $guard_name = 'web';
+
+    /**
      * Send the password reset notification.
      *
      * @param  string  $token
