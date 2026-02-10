@@ -5,7 +5,7 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 
-class Tenant extends Model
+class Plan extends Model
 {
     /**
      * The connection name for the model.
@@ -20,31 +20,27 @@ class Tenant extends Model
      * @var array<int, string>
      */
     protected $fillable = [
-        'domain',
-        'db_name',
-        'db_username',
-        'db_password',
+        'name',
+        'price',
+        'billing_cycle',
+        'max_users',
+        'max_storage',
+        'features',
     ];
 
     /**
-     * The attributes that should be hidden for serialization.
+     * The attributes that should be cast.
      *
-     * @var array<int, string>
+     * @var array<string, string>
      */
-    protected $hidden = [
-        'db_password',
+    protected $casts = [
+        'price'       => 'decimal:2',
+        'max_storage' => 'integer',
+        'features'    => 'array',
     ];
 
     /**
-     * Get all subscriptions for this tenant.
-     */
-    public function licenses(): HasMany
-    {
-        return $this->hasMany(License::class);
-    }
-
-    /**
-     * Get all subscriptions for this tenant.
+     * Get the subscriptions for this plan.
      */
     public function subscriptions(): HasMany
     {

@@ -10,6 +10,8 @@ use App\Http\Requests\Auth\RegisterRequest;
 use App\Http\Requests\Auth\ResetPasswordRequest;
 use App\Http\Requests\Auth\UpdateProfileRequest;
 use App\Models\PersonalAccessToken;
+use App\Models\License;
+use App\Models\Subscription;
 use App\Models\Tenant;
 use App\Models\User;
 use App\Services\TenantDatabaseService;
@@ -31,10 +33,8 @@ class AuthController extends Controller
         $domain = $request->header('X-Tenant-Domain');
         $licenseKey = $request->header('X-License-Key');
 
-        // Verify tenant in Master DB
-        $tenant = Tenant::where('domain', $domain)
-            ->where('license_key', $licenseKey)
-            ->first();
+        // 1) Resolve tenant by domain
+        $tenant = Tenant::where('domain', $domain)->first();
 
         if (!$tenant) {
             return $this->error(
@@ -43,6 +43,55 @@ class AuthController extends Controller
                 401,
                 'INVALID_TENANT'
             );
+        }
+
+        // 2) Find license by key (scoped to tenant)
+        $license = License::with('subscription')
+            ->where('license_key', $licenseKey)
+            ->where('tenant_id', $tenant->id)
+            ->first();
+
+        if (!$license) {
+            return $this->error(
+                'Invalid license key',
+                [],
+                401,
+                'INVALID_LICENSE'
+            );
+        }
+
+        // 3) Validate license: status = active and not expired
+        if (!$license->isActive()) {
+            return $this->error(
+                'License inactive or expired',
+                [],
+                403,
+                'LICENSE_INACTIVE'
+            );
+        }
+
+        // 4) Confirm subscription
+        $subscription = $license->subscription;
+
+        if (!$subscription) {
+            return $this->error(
+                'No subscription associated with this license',
+                [],
+                403,
+                'SUBSCRIPTION_NOT_FOUND'
+            );
+        }
+
+        if (!$subscription->isActive()) {
+            // Optional grace: allow past_due if within license grace period
+            if (!($subscription->isPastDue() && $license->isInGracePeriod())) {
+                return $this->error(
+                    'Subscription inactive',
+                    [],
+                    403,
+                    'SUBSCRIPTION_INACTIVE'
+                );
+            }
         }
 
         // Switch to Tenant DB

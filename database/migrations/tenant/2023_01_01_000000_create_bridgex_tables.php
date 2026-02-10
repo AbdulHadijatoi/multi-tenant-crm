@@ -6,6 +6,11 @@ use Illuminate\Support\Facades\Schema;
 
 return new class extends Migration
 {
+    /**
+     * NOTE: This is a TENANT DB migration.
+     * This migration should run on tenant databases, NOT on Master DB.
+     * Use: php artisan tenant:migrate {tenant_id}
+     */
     public function up()
     {
         // Users Table Update (if needed, typically standard Laravel)

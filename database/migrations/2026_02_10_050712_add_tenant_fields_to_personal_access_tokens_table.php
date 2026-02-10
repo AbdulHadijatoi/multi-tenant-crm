@@ -7,11 +7,19 @@ use Illuminate\Support\Facades\Schema;
 return new class extends Migration
 {
     /**
+     * The database connection that should be used by the migration.
+     *
+     * @var string|null
+     */
+    public $connection = null; // Use default connection (Master DB)
+
+    /**
      * Run the migrations.
      */
     public function up(): void
     {
-        Schema::table('personal_access_tokens', function (Blueprint $table) {
+        // This migration runs on Master DB (default connection)
+        Schema::connection(null)->table('personal_access_tokens', function (Blueprint $table) {
             $table->unsignedBigInteger('tenant_id')->nullable()->after('tokenable_id');
             $table->string('domain')->nullable()->after('tenant_id');
             

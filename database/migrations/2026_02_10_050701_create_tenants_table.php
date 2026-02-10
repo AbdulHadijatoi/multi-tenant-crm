@@ -9,12 +9,19 @@ return new class extends Migration
     /**
      * Run the migrations.
      */
+    /**
+     * The database connection that should be used by the migration.
+     *
+     * @var string|null
+     */
+    public $connection = null; // Use default connection (Master DB)
+
     public function up(): void
     {
-        Schema::create('tenants', function (Blueprint $table) {
+        // This migration runs on Master DB (default connection)
+        Schema::connection(null)->create('tenants', function (Blueprint $table) {
             $table->id();
             $table->string('domain')->unique();
-            $table->string('license_key');
             $table->string('db_name');
             $table->string('db_username');
             $table->string('db_password');
