@@ -18,8 +18,10 @@ use App\Models\Tenant\User;
 use App\Services\TenantDatabaseService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Password;
+use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
 
 class AuthController extends Controller
@@ -357,25 +359,58 @@ class AuthController extends Controller
         $tenantDbService->switchToTenant($tenant);
 
         try {
-            $status = Password::broker('tenant_users')->sendResetLink(
-                $request->only('email')
-            );
+            // Find user by email
+            $user = User::where('email', $request->email)->first();
 
-            $tenantDbService->switchToMaster();
-
-            if ($status === Password::RESET_LINK_SENT) {
-                return $this->success(
-                    ['message' => __('passwords.sent')],
-                    200,
-                    __('passwords.sent')
+            if (!$user) {
+                $tenantDbService->switchToMaster();
+                return $this->error(
+                    null,
+                    [],
+                    400,
+                    'PASSWORD_RESET_FAILED'
                 );
             }
 
-            return $this->error(
-                null,
-                [],
-                400,
-                'PASSWORD_RESET_FAILED'
+            // Generate a random token (Laravel uses 64 characters)
+            $token = Str::random(64);
+
+            // Hash the token before storing (Laravel stores hashed tokens)
+            $hashedToken = Hash::make($token);
+
+            // Delete any existing token for this email
+            DB::table('password_reset_tokens')
+                ->where('email', $request->email)
+                ->delete();
+
+            // Store the hashed token in password_reset_tokens table
+            DB::table('password_reset_tokens')->insert([
+                'email' => $request->email,
+                'token' => $hashedToken,
+                'created_at' => now(),
+            ]);
+
+            // Send the password reset notification with the plain text token
+            $user->sendPasswordResetNotification($token);
+
+            $tenantDbService->switchToMaster();
+
+            // Prepare response data
+            $responseData = ['message' => __('passwords.sent')];
+
+            // In local environment, include the token in the response
+            if (config('app.env') === 'local') {
+                $responseData['token'] = $token;
+                
+                // Construct tenant URL using tenant domain
+                $tenantUrl = 'http://' . $tenant->domain;
+                $responseData['reset_url'] = $tenantUrl . '/reset-password?token=' . $token . '&email=' . urlencode($request->email);
+            }
+
+            return $this->success(
+                $responseData,
+                200,
+                __('passwords.sent')
             );
         } catch (\Exception $e) {
             $tenantDbService->switchToMaster();
