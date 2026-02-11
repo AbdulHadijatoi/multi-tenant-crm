@@ -38,18 +38,44 @@ trait ApiResponse
     }
 
     /**
+     * Get user-friendly error message from error code
+     */
+    protected function getErrorMessage(?string $errorCode, ?string $customMessage = null): string
+    {
+        // If custom message is provided, use it
+        if ($customMessage !== null) {
+            return $customMessage;
+        }
+
+        // If error code is provided, try to get user-friendly message
+        if ($errorCode !== null) {
+            $errorMessage = __('messages.api.error_codes.' . $errorCode, [], null);
+            // If translation exists and is not the key itself, return it
+            if ($errorMessage !== 'messages.api.error_codes.' . $errorCode) {
+                return $errorMessage;
+            }
+        }
+
+        // Fallback to generic error message
+        return __('messages.api.server_error');
+    }
+
+    /**
      * Return error response
      */
     protected function error(
-        string $message,
+        ?string $message = null,
         $errors = null,
         int $statusCode = ApiStatusCode::BAD_REQUEST,
         ?string $errorCode = null
     ): JsonResponse {
+        // Get user-friendly message based on error code
+        $userFriendlyMessage = $this->getErrorMessage($errorCode, $message);
+
         $response = [
             'success' => false,
             'failed' => true,
-            'message' => $message,
+            'message' => $userFriendlyMessage,
             'data' => null,
             'errors' => $this->normalizeErrors($errors),
         ];

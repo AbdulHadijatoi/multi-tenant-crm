@@ -3,7 +3,7 @@
 namespace App\Http\Controllers\Api\V1\SuperAdmin;
 
 use App\Http\Controllers\Controller;
-use App\Http\Requests\Auth\SuperAdminLoginRequest;
+use App\Http\Requests\Master\Auth\SuperAdminLoginRequest;
 use App\Models\Master\User;
 use App\Models\Master\PersonalAccessToken;
 use Illuminate\Http\Request;
@@ -20,7 +20,7 @@ class AuthController extends Controller
 
         if (! $user || ! Hash::check($request->password, $user->password)) {
             return $this->error(
-                __('auth.failed'),
+                null,
                 [],
                 401,
                 'INVALID_CREDENTIALS'
@@ -30,7 +30,7 @@ class AuthController extends Controller
         // Only allow SuperAdmin role with master guard
         if (! $user->hasRole('SuperAdmin', 'master')) {
             return $this->error(
-                __('auth.unauthorized_role'),
+                null,
                 [],
                 403,
                 'UNAUTHORIZED_ROLE'

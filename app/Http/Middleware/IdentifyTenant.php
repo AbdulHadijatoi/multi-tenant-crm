@@ -23,7 +23,7 @@ class IdentifyTenant
             return response()->json([
                 'success' => false,
                 'failed' => true,
-                'message' => 'X-Tenant-Domain header is required',
+                'message' => __('messages.api.error_codes.MISSING_DOMAIN_HEADER'),
                 'data' => null,
                 'errors' => [],
                 'error_code' => 'MISSING_DOMAIN_HEADER',
@@ -37,7 +37,7 @@ class IdentifyTenant
             return response()->json([
                 'success' => false,
                 'failed' => true,
-                'message' => 'Invalid tenant',
+                'message' => __('messages.api.error_codes.INVALID_TENANT'),
                 'data' => null,
                 'errors' => [],
                 'error_code' => 'INVALID_TENANT',
@@ -49,7 +49,7 @@ class IdentifyTenant
             return response()->json([
                 'success' => false,
                 'failed' => true,
-                'message' => 'Domain mismatch',
+                'message' => __('messages.api.error_codes.DOMAIN_MISMATCH'),
                 'data' => null,
                 'errors' => [],
                 'error_code' => 'DOMAIN_MISMATCH',

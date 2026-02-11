@@ -27,7 +27,7 @@ class IdentifyTenantFromToken
             return response()->json([
                 'success' => false,
                 'failed' => true,
-                'message' => 'Unauthenticated',
+                'message' => __('messages.api.error_codes.UNAUTHORIZED'),
                 'data' => null,
                 'errors' => [],
                 'error_code' => 'UNAUTHORIZED',
@@ -56,7 +56,7 @@ class IdentifyTenantFromToken
             return response()->json([
                 'success' => false,
                 'failed' => true,
-                'message' => 'Invalid token',
+                'message' => __('messages.api.error_codes.INVALID_TOKEN'),
                 'data' => null,
                 'errors' => [],
                 'error_code' => 'INVALID_TOKEN',
@@ -68,7 +68,7 @@ class IdentifyTenantFromToken
             return response()->json([
                 'success' => false,
                 'failed' => true,
-                'message' => 'Token expired',
+                'message' => __('messages.api.error_codes.TOKEN_EXPIRED'),
                 'data' => null,
                 'errors' => [],
                 'error_code' => 'TOKEN_EXPIRED',
@@ -83,7 +83,7 @@ class IdentifyTenantFromToken
             return response()->json([
                 'success' => false,
                 'failed' => true,
-                'message' => 'Token missing tenant information',
+                'message' => __('messages.api.error_codes.INVALID_TOKEN'),
                 'data' => null,
                 'errors' => [],
                 'error_code' => 'INVALID_TOKEN',
@@ -97,7 +97,7 @@ class IdentifyTenantFromToken
             return response()->json([
                 'success' => false,
                 'failed' => true,
-                'message' => 'Domain mismatch',
+                'message' => __('messages.api.error_codes.DOMAIN_MISMATCH'),
                 'data' => null,
                 'errors' => [],
                 'error_code' => 'DOMAIN_MISMATCH',
@@ -111,7 +111,7 @@ class IdentifyTenantFromToken
             return response()->json([
                 'success' => false,
                 'failed' => true,
-                'message' => 'Tenant not found',
+                'message' => __('messages.api.error_codes.TENANT_NOT_FOUND'),
                 'data' => null,
                 'errors' => [],
                 'error_code' => 'TENANT_NOT_FOUND',
@@ -123,7 +123,7 @@ class IdentifyTenantFromToken
             return response()->json([
                 'success' => false,
                 'failed' => true,
-                'message' => 'Domain mismatch',
+                'message' => __('messages.api.error_codes.DOMAIN_MISMATCH'),
                 'data' => null,
                 'errors' => [],
                 'error_code' => 'DOMAIN_MISMATCH',
@@ -143,7 +143,7 @@ class IdentifyTenantFromToken
             return response()->json([
                 'success' => false,
                 'failed' => true,
-                'message' => 'User not found',
+                'message' => __('messages.api.error_codes.USER_NOT_FOUND'),
                 'data' => null,
                 'errors' => [],
                 'error_code' => 'USER_NOT_FOUND',
@@ -156,7 +156,7 @@ class IdentifyTenantFromToken
             return response()->json([
                 'success' => false,
                 'failed' => true,
-                'message' => 'Invalid token type',
+                'message' => __('messages.api.error_codes.INVALID_TOKEN'),
                 'data' => null,
                 'errors' => [],
                 'error_code' => 'INVALID_TOKEN',

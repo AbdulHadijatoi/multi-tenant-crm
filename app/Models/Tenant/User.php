@@ -69,6 +69,6 @@ class User extends Authenticatable
      */
     public function roleModel()
     {
-        return $this->belongsTo(\Spatie\Permission\Models\Role::class, 'role_id');
+        return $this->belongsTo(Role::class, 'role_id');
     }
 }

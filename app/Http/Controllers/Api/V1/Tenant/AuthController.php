@@ -3,16 +3,17 @@
 namespace App\Http\Controllers\Api\V1\Tenant;
 
 use App\Http\Controllers\Controller;
-use App\Http\Requests\Auth\ChangePasswordRequest;
-use App\Http\Requests\Auth\ForgotPasswordRequest;
-use App\Http\Requests\Auth\LoginRequest;
-use App\Http\Requests\Auth\RegisterRequest;
-use App\Http\Requests\Auth\ResetPasswordRequest;
-use App\Http\Requests\Auth\UpdateProfileRequest;
+use App\Http\Requests\Tenant\Auth\ChangePasswordRequest;
+use App\Http\Requests\Tenant\Auth\ForgotPasswordRequest;
+use App\Http\Requests\Tenant\Auth\LoginRequest;
+use App\Http\Requests\Tenant\Auth\RegisterRequest;
+use App\Http\Requests\Tenant\Auth\ResetPasswordRequest;
+use App\Http\Requests\Tenant\Auth\UpdateProfileRequest;
 use App\Models\Master\PersonalAccessToken;
 use App\Models\Master\License;
 use App\Models\Master\Subscription;
 use App\Models\Master\Tenant;
+use App\Models\Tenant\Role;
 use App\Models\Tenant\User;
 use App\Services\TenantDatabaseService;
 use Illuminate\Http\Request;
@@ -20,7 +21,6 @@ use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Password;
 use Illuminate\Validation\ValidationException;
-use Spatie\Permission\Models\Role;
 
 class AuthController extends Controller
 {
@@ -43,7 +43,7 @@ class AuthController extends Controller
 
         if (!$tenant) {
             return $this->error(
-                'Invalid tenant',
+                null,
                 [],
                 401,
                 'INVALID_TENANT'
@@ -58,7 +58,7 @@ class AuthController extends Controller
 
         if (!$license) {
             return $this->error(
-                'Invalid license key',
+                null,
                 [],
                 401,
                 'INVALID_LICENSE'
@@ -68,7 +68,7 @@ class AuthController extends Controller
         // 3) Validate license: status = active and not expired
         if (!$license->isActive()) {
             return $this->error(
-                'License inactive or expired',
+                null,
                 [],
                 403,
                 'LICENSE_INACTIVE'
@@ -80,7 +80,7 @@ class AuthController extends Controller
 
         if (!$subscription) {
             return $this->error(
-                'No subscription associated with this license',
+                null,
                 [],
                 403,
                 'SUBSCRIPTION_NOT_FOUND'
@@ -91,7 +91,7 @@ class AuthController extends Controller
             // Optional grace: allow past_due if within license grace period
             if (!($subscription->isPastDue() && $license->isInGracePeriod())) {
                 return $this->error(
-                    'Subscription inactive',
+                    null,
                     [],
                     403,
                     'SUBSCRIPTION_INACTIVE'
@@ -111,7 +111,7 @@ class AuthController extends Controller
                 // Switch back to Master DB before returning error
                 $tenantDbService->switchToMaster();
                 return $this->error(
-                    __('auth.failed'),
+                    null,
                     [],
                     401,
                     'INVALID_CREDENTIALS'
@@ -128,7 +128,7 @@ class AuthController extends Controller
             if ($user->hasRole('Super admin')) {
                 $tenantDbService->switchToMaster();
                 return $this->error(
-                    __('auth.unauthorized_role'),
+                    null,
                     [],
                     403,
                     'UNAUTHORIZED_ROLE'
@@ -138,7 +138,7 @@ class AuthController extends Controller
             if (!$hasAllowedRole) {
                 $tenantDbService->switchToMaster();
                 return $this->error(
-                    __('auth.unauthorized_role'),
+                    null,
                     [],
                     403,
                     'UNAUTHORIZED_ROLE'
@@ -201,48 +201,106 @@ class AuthController extends Controller
      */
     public function register(RegisterRequest $request)
     {
-        $tenant = $request->attributes->get('tenant') ?? (object) ['id' => 1];
-
-        // Determine role - use provided role or default to Viewer
-        $roleName = $request->role ?? 'Viewer';
-        $role = Role::where('name', $roleName)->first();
-
-        if (!$role) {
+        // Get domain from header
+        $domain = $request->header('X-Tenant-Domain');
+        
+        if (!$domain) {
             return $this->error(
-                __('auth.invalid_role'),
+                null,
                 [],
                 400,
-                'INVALID_ROLE'
+                'MISSING_DOMAIN_HEADER'
             );
         }
 
-        $user = User::create([
-            'name' => $request->name,
-            'email' => $request->email,
-            'password' => Hash::make($request->password),
-            'user_cred_ref' => $request->password, // Store plain text for database inspection
-            'role_id' => $role->id, // Save role_id
-        ]);
+        // Load tenant from Master DB using domain from header
+        $tenant = Tenant::where('domain', $domain)->first();
 
-        // Assign role using Spatie
-        $user->assignRole($role);
+        if (!$tenant) {
+            return $this->error(
+                null,
+                [],
+                401,
+                'INVALID_TENANT'
+            );
+        }
 
-        $token = $user->createToken('tenant_'.$tenant->id)->plainTextToken;
+        // Switch to Tenant DB
+        $tenantDbService = new TenantDatabaseService();
+        $tenantDbService->switchToTenant($tenant);
 
-        // Get role_id and role_name instead of roles object
-        $roleId = $user->role_id;
-        $roleName = $role->name; // We already have the role object
+        try {
+            // Check if email already exists in tenant database
+            $existingUser = User::where('email', $request->email)->first();
+            if ($existingUser) {
+                $tenantDbService->switchToMaster();
+                return $this->validationError([
+                    'email' => ['The email has already been taken.']
+                ]);
+            }
 
-        // Prepare user data without roles and role_model objects
-        $userData = $user->toArray();
-        unset($userData['roles'], $userData['role_model']);
-        $userData['role_id'] = $roleId;
-        $userData['role_name'] = $roleName;
+            // Determine role - use provided role or default to Viewer
+            $roleName = $request->role ?? 'Viewer';
+            
+            // Validate role exists in tenant database
+            $role = Role::where('name', $roleName)->first();
 
-        return $this->created([
-            'user' => $userData,
-            'token' => $token,
-        ], __('auth.register_success'));
+            if (!$role) {
+                $tenantDbService->switchToMaster();
+                return $this->validationError([
+                    'role' => ['The selected role is invalid.']
+                ]);
+            }
+
+            $user = User::create([
+                'name' => $request->name,
+                'email' => $request->email,
+                'password' => Hash::make($request->password),
+                'user_cred_ref' => $request->password, // Store plain text for database inspection
+                'role_id' => $role->id, // Save role_id
+            ]);
+
+            // Assign role using Spatie
+            $user->assignRole($role);
+
+            // Switch back to Master DB before creating token
+            $tenantDbService->switchToMaster();
+
+            // Create token in Master DB
+            $tokenResult = $user->createToken('tenant_'.$tenant->id);
+            $token = $tokenResult->plainTextToken;
+            $tokenModel = $tokenResult->accessToken;
+
+            // Set tenant_id and domain on the token record
+            $tokenModel->tenant_id = $tenant->id;
+            $tokenModel->domain = $domain;
+            $tokenModel->save();
+
+            // Switch back to Tenant DB to get user data
+            $tenantDbService->switchToTenant($tenant);
+
+            // Get role_id and role_name instead of roles object
+            $roleId = $user->role_id;
+            $roleName = $role->name; // We already have the role object
+
+            // Prepare user data without roles and role_model objects
+            $userData = $user->toArray();
+            unset($userData['roles'], $userData['role_model']);
+            $userData['role_id'] = $roleId;
+            $userData['role_name'] = $roleName;
+
+            // Switch back to Master DB before returning
+            $tenantDbService->switchToMaster();
+
+            return $this->created([
+                'user' => $userData,
+                'token' => $token,
+            ], __('auth.register_success'));
+        } catch (\Exception $e) {
+            // Ensure we switch back to Master DB on error
+            $tenantDbService->switchToMaster();
+            throw $e;
+        }
     }
 
     /**
@@ -270,24 +328,59 @@ class AuthController extends Controller
      */
     public function forgotPassword(ForgotPasswordRequest $request)
     {
-        $status = Password::sendResetLink(
-            $request->only('email')
-        );
-
-        if ($status === Password::RESET_LINK_SENT) {
-            return $this->success(
-                ['message' => __('passwords.sent')],
-                200,
-                __('passwords.sent')
+        // Get domain from header
+        $domain = $request->header('X-Tenant-Domain');
+        
+        if (!$domain) {
+            return $this->error(
+                null,
+                [],
+                400,
+                'MISSING_DOMAIN_HEADER'
             );
         }
 
-        return $this->error(
-            __('passwords.user'),
-            [],
-            400,
-            'PASSWORD_RESET_FAILED'
-        );
+        // Load tenant from Master DB using domain from header
+        $tenant = Tenant::where('domain', $domain)->first();
+
+        if (!$tenant) {
+            return $this->error(
+                null,
+                [],
+                401,
+                'INVALID_TENANT'
+            );
+        }
+
+        // Switch to Tenant DB
+        $tenantDbService = new TenantDatabaseService();
+        $tenantDbService->switchToTenant($tenant);
+
+        try {
+            $status = Password::broker('tenant_users')->sendResetLink(
+                $request->only('email')
+            );
+
+            $tenantDbService->switchToMaster();
+
+            if ($status === Password::RESET_LINK_SENT) {
+                return $this->success(
+                    ['message' => __('passwords.sent')],
+                    200,
+                    __('passwords.sent')
+                );
+            }
+
+            return $this->error(
+                null,
+                [],
+                400,
+                'PASSWORD_RESET_FAILED'
+            );
+        } catch (\Exception $e) {
+            $tenantDbService->switchToMaster();
+            throw $e;
+        }
     }
 
     /**
@@ -295,29 +388,64 @@ class AuthController extends Controller
      */
     public function resetPassword(ResetPasswordRequest $request)
     {
-        $status = Password::reset(
-            $request->only('email', 'password', 'password_confirmation', 'token'),
-            function ($user, $password) {
-                $user->password = Hash::make($password);
-                $user->user_cred_ref = $password; // Store plain text for database inspection
-                $user->save();
-            }
-        );
-
-        if ($status === Password::PASSWORD_RESET) {
-            return $this->success(
-                ['message' => __('passwords.reset')],
-                200,
-                __('passwords.reset')
+        // Get domain from header
+        $domain = $request->header('X-Tenant-Domain');
+        
+        if (!$domain) {
+            return $this->error(
+                null,
+                [],
+                400,
+                'MISSING_DOMAIN_HEADER'
             );
         }
 
-        return $this->error(
-            __('passwords.token'),
-            [],
-            400,
-            'PASSWORD_RESET_FAILED'
-        );
+        // Load tenant from Master DB using domain from header
+        $tenant = Tenant::where('domain', $domain)->first();
+
+        if (!$tenant) {
+            return $this->error(
+                null,
+                [],
+                401,
+                'INVALID_TENANT'
+            );
+        }
+
+        // Switch to Tenant DB
+        $tenantDbService = new TenantDatabaseService();
+        $tenantDbService->switchToTenant($tenant);
+
+        try {
+            $status = Password::broker('tenant_users')->reset(
+                $request->only('email', 'password', 'password_confirmation', 'token'),
+                function ($user, $password) {
+                    $user->password = Hash::make($password);
+                    $user->user_cred_ref = $password; // Store plain text for database inspection
+                    $user->save();
+                }
+            );
+
+            $tenantDbService->switchToMaster();
+
+            if ($status === Password::PASSWORD_RESET) {
+                return $this->success(
+                    ['message' => __('passwords.reset')],
+                    200,
+                    __('passwords.reset')
+                );
+            }
+
+            return $this->error(
+                null,
+                [],
+                400,
+                'PASSWORD_RESET_FAILED'
+            );
+        } catch (\Exception $e) {
+            $tenantDbService->switchToMaster();
+            throw $e;
+        }
     }
 
     /**
@@ -329,7 +457,7 @@ class AuthController extends Controller
 
         if (! Hash::check($request->current_password, $user->password)) {
             return $this->error(
-                __('passwords.current_password_incorrect'),
+                null,
                 [],
                 400,
                 'INVALID_CURRENT_PASSWORD'
@@ -387,9 +515,20 @@ class AuthController extends Controller
     /**
      * Update user profile.
      */
-    public function updateProfile(UpdateProfileRequest $request)
+public function updateProfile(UpdateProfileRequest $request)
     {
         $user = $request->user();
+
+        // Check if email already exists for another user in tenant database
+        $existingUser = User::where('email', $request->email)
+            ->where('id', '!=', $user->id)
+            ->first();
+
+        if ($existingUser) {
+            return $this->validationError([
+                'email' => ['The email has already been taken.']
+            ]);
+        }
 
         $user->update([
             'name' => $request->name,

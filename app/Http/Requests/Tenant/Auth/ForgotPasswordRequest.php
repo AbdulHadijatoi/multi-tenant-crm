@@ -1,10 +1,10 @@
 <?php
 
-namespace App\Http\Requests\Auth;
+namespace App\Http\Requests\Tenant\Auth;
 
 use Illuminate\Foundation\Http\FormRequest;
 
-class ResetPasswordRequest extends FormRequest
+class ForgotPasswordRequest extends FormRequest
 {
     /**
      * Determine if the user is authorized to make this request.
@@ -23,8 +23,6 @@ class ResetPasswordRequest extends FormRequest
     {
         return [
             'email' => ['required', 'email', 'string', 'max:255'],
-            'token' => ['required', 'string'],
-            'password' => ['required', 'string', 'min:8', 'confirmed'],
         ];
     }
 
@@ -35,7 +33,6 @@ class ResetPasswordRequest extends FormRequest
     {
         $this->merge([
             'email' => $this->sanitize($this->email),
-            'token' => $this->sanitize($this->token),
         ]);
     }
 

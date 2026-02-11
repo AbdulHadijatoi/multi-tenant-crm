@@ -39,7 +39,7 @@ return Application::configure(basePath: dirname(__DIR__))
                     return response()->json([
                         'success' => false,
                         'failed' => true,
-                        'message' => __('messages.api.unauthorized'),
+                        'message' => __('messages.api.error_codes.UNAUTHORIZED'),
                         'data' => null,
                         'errors' => [],
                         'error_code' => 'UNAUTHORIZED',
