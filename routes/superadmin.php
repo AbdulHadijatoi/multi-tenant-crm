@@ -19,6 +19,8 @@ Route::group(['middleware' => []], function () {
 });
 
 // Protected routes (authentication required)
-Route::group(['middleware' => ['auth:sanctum', 'role:Super admin']], function () {
+// Use 'master' guard for superadmin to ensure master DB connection
+Route::group(['middleware' => ['auth:master', 'role:SuperAdmin']], function () {
+    Route::get('/auth/profile', [AuthController::class, 'profile']);
     Route::post('/auth/logout', [AuthController::class, 'logout']);
 });
